@@ -23,6 +23,8 @@
 @property (weak, nonatomic) IBOutlet UIButton *iconBtn;
 @property (weak, nonatomic) IBOutlet UIButton *nextQuestionBtn;
 @property (weak, nonatomic) IBOutlet UIButton *scoreBtn;
+@property (weak, nonatomic) IBOutlet UIButton *tipBtn;
+@property (weak, nonatomic) IBOutlet UIButton *helpBtn;
 
 @property (nonatomic,weak) UIButton *cover;
 //存放正确答案的View
@@ -34,6 +36,8 @@
 @property (nonatomic,strong) NSArray *questions;
 /**当前是第几题*/
 @property (nonatomic,assign) int index;
+/**使用了提示标志*/
+@property (nonatomic,assign) BOOL tipUse;
 @end
 
 @implementation ViewController
@@ -42,6 +46,7 @@
     [super viewDidLoad];
     self.index = -1;
     self.nextQuestion;
+    self.tipUse = NO;
 }
 
 
@@ -75,14 +80,17 @@
     return UIStatusBarStyleLightContent;
 }
 
+
+
 - (IBAction)tip {
+    if (!self.tipUse) {
     //清空答案选项
     for (UIButton *btn in self.answerView.subviews) {
         [self answerClick:btn];
     }
-    QTQuestion *quesion = self.questions[self.index];
+    QTQuestion *question = self.questions[self.index];
     //第一个字母
-    NSString *aString = quesion.answer;
+    NSString *aString = question.answer;
     NSString *first = [aString substringToIndex:1];
     for (UIButton *btn in self.optionView.subviews) {
         if ([btn.currentTitle isEqualToString:first]) {
@@ -91,8 +99,13 @@
         }
     }
     int score = [self.scoreBtn titleForState:UIControlStateNormal].intValue;
-    score -= 1000;
+    score -= 500;
     [self.scoreBtn setTitle:[NSString stringWithFormat:@"%d",score] forState:UIControlStateNormal];
+    }
+    self.tipUse = YES;
+    self.tipBtn.enabled = NO;
+    
+    
     
 }
 
@@ -147,6 +160,29 @@
 }
 
 - (IBAction)help {
+    
+    //1.移除所有待选答案
+    for (UIButton *btn in self.answerView.subviews) {
+        [self answerClick:btn];
+    }
+    //2.获得正确答案
+    QTQuestion *question = self.questions[self.index];
+    NSString *answer =question.answer;
+    //3.根据正确答案每个字寻找待选答案的按钮
+    for (int i=0; i<answer.length; i++) {
+        NSString *one = [answer substringWithRange:NSMakeRange(i,1)];
+        //4.待选答案点击事件
+        for (UIButton *btn in self.optionView.subviews) {
+            NSString *btnTitle = [btn titleForState:UIControlStateNormal];
+            if ([btnTitle isEqualToString:one]) {
+                [self optionClick:btn];
+                break;
+            }
+        }
+    }
+    [self score:@"-"];
+    [self score:@"-"];
+    self.helpBtn.enabled = NO;
 }
 
 /**
@@ -178,10 +214,18 @@
         [subview removeFromSuperview];
     }
     
-    //添加新的答案按钮
+    //5.2添加新的答案按钮
     [self addAnswerBtn:quesion];
-    //添加待选项
+    //5.3添加待选项
     [self addOptionBtn:quesion];
+    //6.设置下一题状态
+    self.tipUse = NO;
+    self.tipBtn.enabled = YES;
+    self.helpBtn.enabled = YES;
+    if (self.index == self.questions.count) {
+        self.nextQuestionBtn.enabled = NO;
+    }
+    
     
     
     
@@ -283,6 +327,24 @@
     }
 
 }
+
+
+
+- (void)score:(NSString *)action
+{
+    if ([action isEqualToString:@"+"]) {
+            //add score
+        int score = [self.scoreBtn titleForState:UIControlStateNormal].intValue;
+        score += 1000;
+        [self.scoreBtn setTitle:[NSString stringWithFormat:@"%d",score] forState:UIControlStateNormal];
+    }else{
+        //decrease score
+        int score = [self.scoreBtn titleForState:UIControlStateNormal].intValue;
+        score -= 1000;
+        [self.scoreBtn setTitle:[NSString stringWithFormat:@"%d",score] forState:UIControlStateNormal];
+    }
+}
+
 
 
 - (void)optionClick:(UIButton *)optionBtn
